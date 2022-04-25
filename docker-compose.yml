@@ -1,0 +1,43 @@
+version: '3.9'
+services:
+  producer_db:
+    image: postgres
+    volumes:
+      - ./tmp/db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
+  producer:
+    build: ./producer
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    volumes:
+      - ./producer:/myapp
+    ports:
+      - '3000:3000'
+    links:
+      - producer_db
+      - rabbit_mq
+  consumer_db:
+    image: postgres
+    volumes:
+      - ./tmp/db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
+  consumer:
+    build: ./consumer
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    volumes:
+      - ./consumer:/myapp
+    ports:
+      - '3001:3000'
+    links:
+      - consumer_db
+      - rabbit_mq
+  rabbit_mq:
+    image: rabbitmq:3-management
+    container_name: 'rabbit_mq'
+    environment:
+      - RABBITMQ_DEFAULT_USER=myuser
+      - RABBITMQ_DEFAULT_PASS=mypassword
+    ports:
+      - 5672:5672
+      - 15672:15672
